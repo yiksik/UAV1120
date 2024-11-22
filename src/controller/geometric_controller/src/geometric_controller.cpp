@@ -274,6 +274,8 @@ bool geometricCtrl::landCallback(std_srvs::SetBool::Request &request,
 }
 
 void geometricCtrl::cmdloopCallback(const ros::TimerEvent &event) {
+  static node_state node_state_last =0;
+  static double holdTargetPos_x_record, holdTargetPos_y_record, holdTargetPos_z_record;
   switch (node_state) {
   case WAITING_FOR_HOME_POSE:
     waitForPredicate(&received_home_pose, "Waiting for home pose...");
@@ -325,12 +327,19 @@ void geometricCtrl::cmdloopCallback(const ros::TimerEvent &event) {
   }
 
   case MISSION_HOLD: {
+    if(node_state_last != MISSING_HOLD)
+    {
+      ROS_INFO("MISSION_HOLD BEGIN");
+      holdTargetPos_x_record = mavPos_(0);
+      holdTargetPos_y_record = mavPos_(1);
+      holdTargetPos_z_record = mavPos_(2);
+    }
     std::cout << "                                   HOLDHOLDHOLD  " << dtttt << std::endl;
     geometry_msgs::PoseStamped takingoff_msg;
 
-    holdTargetPos_x_ = mavPos_(0);
-    holdTargetPos_y_ = mavPos_(1);
-    holdTargetPos_z_ = mavPos_(2);
+    holdTargetPos_x_ = holdTargetPos_x_record;
+    holdTargetPos_y_ = holdTargetPos_y_record;
+    holdTargetPos_z_ = holdTargetPos_z_record;
 
     takingoff_msg.header.stamp = ros::Time::now();
     takingoff_msg.pose.position.x = holdTargetPos_x_;
@@ -356,6 +365,7 @@ void geometricCtrl::cmdloopCallback(const ros::TimerEvent &event) {
     cmdloop_timer_.stop();
     break;
   }
+  node_state_last = node_state;
 }
 
 bool geometricCtrl::autoland() {
